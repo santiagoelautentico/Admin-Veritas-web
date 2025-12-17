@@ -3,5 +3,267 @@ import Layout from "../layouts/Layout.astro";
 ---
 
 <Layout title="Dashboard Veritas">
+  <section class="main-container">
     <h1>Dashboard Page</h1>
+    <section class="grid-container">
+      <article class="container-user">
+        <h3>List of Users</h3>
+        <article id="users"></article>
+      </article>
+      <article class="container-news">
+        <h3>Latest News</h3>
+        <article id="news" class="card-container-father"></article>
+      </article>
+    </section>
+  </section>
 </Layout>
+
+<script>
+  import { date } from "astro:schema";
+
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(";").shift();
+  }
+
+  const token = getCookie("authToken");
+  console.log("Token:", token);
+  function getUsers() {
+    fetch("http://localhost:1234/users", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Usuarios:", data.users);
+        document.getElementById("users").innerHTML = data.users
+          .map(
+            (user) => `
+      <div class="user-card" onclick="window.location.href='/users/${user.id_user}'">
+        ${
+          user.picture
+            ? `<img src="${user.picture}" alt="${user.username}" class="avatar" />`
+            : `<div class="icon-profile">${user.username.charAt(0).toUpperCase()}</div>`
+        }
+        <h2>${user.username}</h2>
+       ${
+         user.role === "admin"
+           ? `<span class="type-tag tag-admin">Admin</span>`
+           : user.role === "creator"
+             ? `<span class="type-tag tag-creator">Creator</span>`
+             : `<span class="type-tag tag-regular">Regular User</span>`
+       }
+      </div>
+    `
+          )
+          .join("");
+      });
+  }
+  function getNews() {
+    const countries = {
+      1: "Uruguay",
+      2: "USA",
+      3: "Argentina",
+      4: "Brazil",
+      5: "Puerto Rico",
+      // ... agrega todos tus países
+    };
+    fetch("http://localhost:1234/news", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("News:", data.news);
+        document.getElementById("news").innerHTML = data.news
+          .map(
+            (news) => `
+            <article class="news-card" onclick="window.location.href='/news/${news.id_news}'">
+                <div>
+                    <img src="${news.picture_url}" alt="News Image" class="news-image" style="view-transition-name: news-img-${news.id_news};"/>
+                </div>
+                <div>
+                    <div class="info-list-span">
+                    <p>Published on: ${news.created_at ? new Date(news.created_at).toLocaleDateString() : "N/A"}</p>
+                    <p>Country: ${countries[news.id_country] || "Unknown"}</p>
+                </div>
+                    <h4 class="title-news">${news.title}</h4>
+                    <p class="subtitle-news">${news.subtitle}</p>
+                    <div class="author-info">
+                        <img src="${news.picture}" alt="Author Avatar" class="avatarNews" /> 
+                        <h3>${news.username}</h5>
+                        <p class="type-of-journalist">- ${news.type_of_journalist}</p>
+                    </div>
+           
+                </div>
+            </article>
+          `
+          )
+          .join("");
+      })
+      .catch((error) => {
+        console.error("Error en getNews:", error);
+      });
+  }
+
+  getUsers();
+  getNews();
+</script>
+<style is:global>
+  body {
+    color: "#F1F4F6";
+  }
+  .main-container {
+    padding-inline: 5rem;
+  }
+  .grid-container {
+    display: grid;
+    grid-template-columns: 1.5fr 2fr;
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+  .container-news {
+    grid-column: 2;
+    max-width: 100%;
+    height: 70vh;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+  }
+  .container-user {
+    grid-column: 1;
+    height: 70vh;
+    max-width: 100%;
+    overflow-y: auto;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+  }
+  .container-user,
+  .container-news {
+    padding-top: 1rem;
+    padding-bottom: 3rem;
+    background-color: #333a3fab;
+    border-radius: 28px;
+  }
+  .container-user > h3 {
+    font-size: 1.5rem;
+    padding-left: 2rem;
+  }
+  .container-news > h3 {
+    font-size: 1.5rem;
+    padding-left: 1rem;
+  }
+  .avatar {
+    width: 4rem;
+    object-fit: cover;
+    object-position: center;
+    height: 4rem;
+    border-radius: 50%;
+  }
+  .avatarNews {
+    width: 3rem;
+    height: 3rem;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 50%;
+  }
+  .user-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+  }
+  .info-list-span {
+    font-size: 0.8rem;
+    opacity: 0.7;
+  }
+  .user-card {
+    border-bottom: 1px solid #444;
+    padding-block: 0.5rem;
+    padding-inline: 2rem;
+    transition: background-color 0.3s ease;
+  }
+  .user-card:hover {
+    background-color: #121212;
+  }
+  .type-tag {
+    font-size: 1rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 28px;
+    color: white;
+  }
+  .tag-admin {
+    background-color: #0ea12b;
+  }
+  .tag-creator {
+    background-color: #ffc857;
+    color: #121212;
+  }
+  .tag-regular {
+    background-color: #0f4c81;
+  }
+  .news-card > div:first-child {
+    aspect-ratio: 16/9;
+    overflow: hidden;
+    display: block;
+  }
+  .news-image {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 16px;
+  }
+  .author-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .news-card {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    padding-inline: 1rem;
+    padding-block: 2rem;
+    transition: background-color 0.3s ease;
+    border-bottom: 1px solid #444;
+    cursor: pointer;
+  }
+  .news-card:hover {
+    background-color: #121212;
+  }
+  /* .news-image rules handled above (object-fit + aspect-ratio wrapper) */
+  .card-container-father {
+    display: flex;
+    flex-direction: column;
+  }
+  .title-news {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+  .subtitle-news {
+    margin-top: 0.5rem;
+    font-size: 1rem;
+    opacity: 0.7;
+  }
+  .type-of-journalist {
+    font-size: 0.9rem;
+    opacity: 0.7;
+  }
+  .info-list-span {
+    display: flex;
+    gap: 1rem;
+  }
+  .icon-profile {
+    padding-inline: 1.7em;
+    padding-block: 1.4em;
+    background-color: #0f4c81;
+    border-radius: 50%;
+  }
+</style>
