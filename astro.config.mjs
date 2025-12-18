@@ -1,7 +1,9 @@
-// @ts-check
 import { defineConfig } from 'astro/config';
-import react from '@astrojs/react';
-// https://astro.build/config
+import node from '@astrojs/node';
+
 export default defineConfig({
-    integrations: [react()],
+  output: 'server', // o 'hybrid' si solo algunas páginas son SSR
+  adapter: node({
+    mode: 'standalone'
+  }),
 });
