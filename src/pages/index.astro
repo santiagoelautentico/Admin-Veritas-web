@@ -35,6 +35,8 @@ import Layout from "../layouts/Layout.astro";
   </div>
 </Layout>
 <script>
+import { API_NETWORK } from "../constants";
+
   const form = document.getElementById("loginForm");
   const emailInput = document.getElementById("email") as HTMLInputElement;
   const passwordInput = document.getElementById("password") as HTMLInputElement;
@@ -45,9 +47,9 @@ import Layout from "../layouts/Layout.astro";
     event.preventDefault();
     console.log(`Email: ${emailInput.value} Password: ${passwordInput.value}`);
 
-    const res = await fetch("http://localhost:1234/adminLogin", {
+    const res = await fetch(`${API_NETWORK}adminLogin`, {
       method: "POST",
-      credentials: "include", // ✅ Agrega esto para recibir cookies del backend
+      credentials: "include", 
       headers: {
         "Content-Type": "application/json",
       },
@@ -61,7 +63,6 @@ import Layout from "../layouts/Layout.astro";
     console.log("Response DATA:", data);
 
     if (res.ok) {
-      // ✅ PRIMERO guarda la cookie
       document.cookie = `authToken=${data.token}; path=/; max-age=604800; SameSite=Lax`;
       console.log("Cookie guardada:", document.cookie);
 
@@ -71,7 +72,7 @@ import Layout from "../layouts/Layout.astro";
       console.error("Login failed:", data);
       alert("Login failed. Please check your credentials and try again.");
     }
-  }); // ✅ Faltaba cerrar addEventListener
+  });
 </script>
 
 <style>

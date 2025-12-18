@@ -2,17 +2,17 @@
 export const prerender = false;
 
 import Layout from "../../layouts/Layout.astro";
-
+import { API_NETWORK } from "../../constants";
 const { id } = Astro.params;
 
-const token = Astro.cookies.get("access_token")?.value;
+const token = Astro.cookies.get("authToken")?.value;
 console.log("Token:", token);
 
 if (!token) {
   return Astro.redirect("/");
 }
 
-const response = await fetch(`http://localhost:1234/news/${id}`, {
+const response = await fetch(`${API_NETWORK}news/${id}`, {
   headers: {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
@@ -58,8 +58,9 @@ console.log("News detail:", newsDetail);
     </section>
   </section>
 </Layout>
-<script is:inline define:vars={{ id, token }}>
-  console.log("Token:", token);
+<script is:inline define:vars={{ id, token, apiUrl: API_NETWORK }}>
+  console.log("🔑 Token que se está enviando:", token);
+  console.log("📍 URL del fetch:", `${apiUrl}news/${id}`);
 
   document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("deleteBtn").addEventListener("click", async () => {
@@ -68,25 +69,29 @@ console.log("News detail:", newsDetail);
       }
 
       try {
-        const response = await fetch(`http://localhost:1234/news/${id}`, {
+        console.log("🚀 Enviando DELETE con token:", token);
+
+        const response = await fetch(`${apiUrl}news/${id}`, {
           method: "DELETE",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          credentials: "include", 
+          credentials: "include",
         });
+
+        console.log("📥 Response status:", response.status);
 
         if (response.ok) {
           alert("News deleted successfully");
           window.location.href = "/dashboard";
         } else {
           const errorText = await response.text();
-          console.log("Backend error:", errorText);
+          console.log("❌ Backend error:", errorText);
           alert(`Failed to delete news: ${errorText}`);
         }
       } catch (error) {
-        console.error("Error deleting news:", error);
+        console.error("💥 Error deleting news:", error);
         alert("An error occurred while deleting the news");
       }
     });

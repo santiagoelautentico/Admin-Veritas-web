@@ -2,17 +2,18 @@
 export const prerender = false;
 
 import Layout from "../../layouts/Layout.astro";
-
+import { API_NETWORK } from "../../constants";
 const { id } = Astro.params;
-const token = Astro.cookies.get("access_token")?.value;
+const token = Astro.cookies.get("authToken")?.value;
 
 if (!token) {
   return Astro.redirect("/");
 }
 
 let newsUser = [];
+let user = null;
 try {
-  const response = await fetch(`http://localhost:1234/news/profileNews/${id}`, {
+  const response = await fetch(`${API_NETWORK}news/profileNews/${id}`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -20,40 +21,50 @@ try {
       Cookie: `access_token=${token}`,
     },
   });
-
-  console.log("Response status:", response.status);
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Backend error:", errorText);
-  } else {
+  if (response.ok) {
     const data = await response.json();
     newsUser = data.news || [];
-    console.log("News detail:", newsUser);
+  } else {
+    const errorText = await response.text();
+    console.error("❌ News error:", errorText);
   }
 } catch (error) {
-  console.error("Error:", error);
+  console.error("💥 News fetch error:", error);
 }
-
-const response = await fetch(`http://localhost:1234/users/${id}`, {
-  headers: {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
-  },
-});
-
-const userData = await response.json();
-const user = userData.user;
-
-console.log("User detail:", user);
+try {
+  const url = `${API_NETWORK}users/${id}`;
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+  const rawText = await response.text();
+  try {
+    const userData = JSON.parse(rawText);
+    user = userData.user;
+    console.log("✅ User loaded:", user);
+  } catch (parseError) {
+    console.error("❌ Failed to parse JSON. Response was:", rawText);
+    throw parseError;
+  }
+} catch (error) {
+  console.error("💥 User fetch error:", error);
+  return Astro.redirect("/dashboard");
+}
 
 const countries = {
   1: "Uruguay",
-  2: "USA",
-  3: "Argentina",
-  4: "Brazil",
+  2: "Argentina",
+  3: "Spain",
+  4: "United States",
   5: "Puerto Rico",
 };
+    // { id: 1, name: "Uruguay" },
+    // { id: 2, name: "Argentina" },
+    // { id: 3, name: "Spain" },
+    // { id: 4, name: "United States" },
+    // { id: 5, name: "Puerto Rico" },
 ---
 
 <Layout title={"Profile " + id}>
@@ -73,7 +84,7 @@ const countries = {
             {user.username}
             <span
               >{
-                user.role === 'creator'
+                user.role === "creator"
                   ? `- ${user.type_of_journalist}`
                   : "- Regular user"
               }</span
@@ -127,7 +138,7 @@ const countries = {
     {
       user.role === "creator" || user.role === "admin" ? (
         <section class="section-news">
-          <h1>News:</h1>
+          {user.request === null ? <h1>News:</h1> : ""}
           {newsUser.length != 0 ? (
             <section class="container-news">
               {newsUser.map((news) => (
@@ -145,8 +156,18 @@ const countries = {
                 </article>
               ))}
             </section>
+          ) : user.status_account === 1 ? (
+            <section class="container-news">
+              <h2>The user dont have post yet</h2>
+            </section>
           ) : (
-            <p>This user has not published news yet.</p>
+            <article class="container-request">
+              <h2 class="title-request">Request:</h2>
+              <p class="rquestText">{user.request}</p>
+              <button class="primary-btn" id="activateBtn">
+                Confirm the request
+              </button>
+            </article>
           )}
         </section>
       ) : (
@@ -156,7 +177,7 @@ const countries = {
   </section>
 </Layout>
 
-<script is:inline define:vars={{ id, token }}>
+<script is:inline define:vars={{ id, token, apiUrl: API_NETWORK }}>
   console.log("Token:", token);
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -166,7 +187,7 @@ const countries = {
       }
 
       try {
-        const response = await fetch(`http://localhost:1234/users/${id}`, {
+        const response = await fetch(`${apiUrl}users/${id}`, {
           method: "DELETE",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -176,7 +197,7 @@ const countries = {
         });
 
         if (response.ok) {
-          alert("News deleted successfully");
+          alert("News deleted successfully"); 
           window.location.href = "/dashboard";
         } else {
           const errorText = await response.text();
@@ -189,6 +210,35 @@ const countries = {
       }
     });
   });
+  const activateBtn = document.getElementById("activateBtn");
+  if (activateBtn) {
+    activateBtn.addEventListener("click", async () => {
+      if (!confirm("Are you sure you want to activate this account?")) {
+        return;
+      }
+      try {
+        const response = await fetch(`${apiUrl}users/${id}/activate`, {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Cookie: `access_token=${token}`,
+          },
+          credentials: "include",
+        });
+        if (response.ok) {
+          alert("Account activated successfully");
+          window.location.reload(); 
+        } else {
+          const errorText = await response.text();
+          alert(`Failed to activate account: ${errorText}`);
+        }
+      } catch (error) {
+        console.error("Error activating account:", error);
+        alert("An error occurred while activating the account");
+      }
+    });
+  }
 </script>
 
 <style>
@@ -198,6 +248,7 @@ const countries = {
     display: flex;
     flex-direction: column;
     gap: 2rem;
+    position: relative;
   }
   .user-picture {
     width: 8em;
@@ -217,6 +268,9 @@ const countries = {
     padding-block: 1em;
     position: relative;
   }
+  .container-request {
+  }
+  ,
   .container-userData-data h1 {
     align-items: center;
   }
@@ -264,6 +318,7 @@ const countries = {
     gap: 0.8rem;
     cursor: pointer;
     transition: 300ms ease-in;
+    margin-bottom: 1rem;
   }
   .news-card h2 {
     margin: 0;
@@ -323,5 +378,39 @@ const countries = {
   }
   .delete:hover {
     background-color: #d33232;
+  }
+  .primary-btn {
+    background-color: #ffc857;
+    padding: 1em;
+    border-radius: 16px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    transition: scale 300ms ease;
+    transition: box-shadow 300ms ease;
+    transition: background-color 700ms ease;
+    width: max-content;
+  }
+  .primary-btn:hover {
+    box-shadow:
+      rgba(50, 50, 93, 0.25) 0px 30px 60px -12px inset,
+      rgba(0, 0, 0, 0.3) 0px 18px 36px -18px inset;
+    scale: 1.05;
+    background-color: #34c759;
+  }
+  .rquestText {
+    padding: 1em;
+    background-color: #121212;
+    border-radius: 20px;
+    margin: 0;
+  }
+  .title-request {
+    padding: 1em 0 0 0;
+    margin: 0;
+  }
+  .container-request {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
   }
 </style>

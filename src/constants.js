@@ -1,0 +1,1 @@
+export const API_NETWORK = 'https://api-veritas-production.up.railway.app/'

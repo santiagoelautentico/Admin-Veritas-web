@@ -20,6 +20,7 @@ import Layout from "../layouts/Layout.astro";
 
 <script>
   import { date } from "astro:schema";
+  import { API_NETWORK } from "../constants";
 
   function getCookie(name) {
     const value = `; ${document.cookie}`;
@@ -30,7 +31,7 @@ import Layout from "../layouts/Layout.astro";
   const token = getCookie("authToken");
   console.log("Token:", token);
   function getUsers() {
-    fetch("http://localhost:1234/users", {
+    fetch(`${API_NETWORK}users`, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -71,7 +72,7 @@ import Layout from "../layouts/Layout.astro";
       5: "Puerto Rico",
       // ... agrega todos tus países
     };
-    fetch("http://localhost:1234/news", {
+    fetch(`${API_NETWORK}news`, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -133,6 +134,7 @@ import Layout from "../layouts/Layout.astro";
     height: 70vh;
     overflow-y: auto;
     scroll-behavior: smooth;
+    scrollbar-width: none;
   }
   .container-user {
     grid-column: 1;
